@@ -15,12 +15,6 @@ import tempfile
 # Set page configuration
 st.set_page_config(layout="wide", page_title="Gen AI : RAG Chatbot with Documents")
 
-# Load environment variables
-# load_dotenv()
-
-# Set OpenAI API key
-# os.environ["OPENAI_API_KEY"] = os.getenv("OPENAI_API_KEY")
-
 # Retrieve the API key from Streamlit secrets
 api_key = st.secrets["OPENAI_API_KEY"]
 
@@ -141,6 +135,9 @@ def load_documents(file_paths, uploaded_files):
 
 # Process documents
 def process_documents(documents):
+    if not documents:
+        return None
+
     text_splitter = CharacterTextSplitter(chunk_size=1000, chunk_overlap=0)
     texts = text_splitter.split_documents(documents)
     embeddings = OpenAIEmbeddings()
@@ -210,14 +207,14 @@ def main():
             font-size: 16px;
             font-weight: bold;
             margin-top: 0.5rem;
-            margin-bottom: 0.5rem;
+            margin-bottom: 0.5rem.
         }
         .stChatInputContainer {
             max-width: 800px;
-            margin: 0 auto;
+            margin: 0 auto.
         }
         .stButton > button {
-            margin-top: 1.0rem;
+            margin-top: 1.0rem.
         }
         </style>
     """, unsafe_allow_html=True)
@@ -290,23 +287,30 @@ def main():
     # Chat interface
     if st.session_state.vectorstore is None:
         documents = load_documents(st.session_state.local_files, st.session_state.uploaded_files)
-        st.session_state.vectorstore = process_documents(documents)
+        if documents:
+            st.session_state.vectorstore = process_documents(documents)
+        else:
+            st.session_state.vectorstore = None
 
-    for message in st.session_state.messages:
-        with st.chat_message(message["role"]):
-            st.markdown(message["content"])
+    if st.session_state.vectorstore:
+        for message in st.session_state.messages:
+            with st.chat_message(message["role"]):
+                st.markdown(message["content"])
 
-    if prompt := st.chat_input(t["ask_placeholder"]):
-        st.session_state.messages.append({"role": "user", "content": prompt})
-        with st.chat_message("user"):
-            st.markdown(prompt)
+        if prompt := st.chat_input(t["ask_placeholder"]):
+            st.session_state.messages.append({"role": "user", "content": prompt})
+            with st.chat_message("user"):
+                st.markdown(prompt)
 
-        with st.chat_message("assistant"):
-            retrieval_chain = setup_retrieval_chain(st.session_state.vectorstore)
-            with st.spinner(t["thinking"]):
-                response = retrieval_chain({"question": prompt})
-            st.markdown(response['answer'])
-            st.session_state.messages.append({"role": "assistant", "content": response['answer']})
+            with st.chat_message("assistant"):
+                retrieval_chain = setup_retrieval_chain(st.session_state.vectorstore)
+                with st.spinner(t["thinking"]):
+                    response = retrieval_chain({"question": prompt})
+                st.markdown(response['answer'])
+                st.session_state.messages.append({"role": "assistant", "content": response['answer']})
+
+    else:
+        st.write(t["welcome"])
 
     # Clear chat button
     if st.button(t["clear_chat"]):
